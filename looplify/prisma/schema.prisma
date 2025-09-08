@@ -1,0 +1,107 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  name          String?
+  image         String?
+  passwordHash  String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  playlists     Playlist[]
+  likedTracks   Track[]    @relation("UserLikedTracks")
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Artist {
+  id        String   @id @default(cuid())
+  name      String
+  image     String?
+  createdAt DateTime @default(now())
+  albums    Album[]
+  tracks    Track[]
+}
+
+model Album {
+  id         String   @id @default(cuid())
+  title      String
+  coverUrl   String?
+  year       Int?
+  createdAt  DateTime @default(now())
+  artist     Artist   @relation(fields: [artistId], references: [id])
+  artistId   String
+  tracks     Track[]
+}
+
+model Track {
+  id           String     @id @default(cuid())
+  title        String
+  durationSec  Int
+  audioUrl     String
+  coverUrl     String?
+  createdAt    DateTime   @default(now())
+  artist       Artist     @relation(fields: [artistId], references: [id])
+  artistId     String
+  album        Album?     @relation(fields: [albumId], references: [id])
+  albumId      String?
+  playlists    Playlist[] @relation("PlaylistTracks")
+  likedByUsers User[]     @relation("UserLikedTracks")
+}
+
+model Playlist {
+  id         String    @id @default(cuid())
+  name       String
+  coverUrl   String?
+  isPublic   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  owner      User      @relation(fields: [ownerId], references: [id])
+  ownerId    String
+  tracks     Track[]   @relation("PlaylistTracks")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
